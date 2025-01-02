@@ -15,5 +15,19 @@
     "build": "tsup --format esm --dts",
     "dev": "tsup --format esm --dts --watch",
     "lint": "eslint --fix  --cache ."
+  },
+  "pluginType": "elizaos:plugin:1.0.0",
+  "pluginParameters": {
+    "type": "object",
+    "required": ["telegramBotToken"],
+    "properties": {
+      "telegramBotToken": {
+        "type": "string",
+        "description": "Telegram Bot Token"
+      }
+    }
+  },
+  "pluginEnv": {
+    "TELEGRAM_BOT_TOKEN": "telegramBotToken"
   }
 }
