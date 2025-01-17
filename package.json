@@ -35,5 +35,11 @@
         "lint": "eslint --fix  --cache .",
         "test": "vitest run",
         "test:watch": "vitest"
+    },
+    "pluginTypes": "elizaos:client:1.0.0",
+    "pluginParameters": {
+        "TELEGRAM_BOT_TOKEN": {
+            "type": "string"
+        }
     }
 }

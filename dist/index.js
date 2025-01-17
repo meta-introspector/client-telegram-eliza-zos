@@ -1088,10 +1088,10 @@ import { z } from "zod";
 var telegramEnvSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(1, "Telegram bot token is required")
 });
-async function validateTelegramConfig(runtime) {
+async function validateTelegramConfig(env) {
   try {
     const config = {
-      TELEGRAM_BOT_TOKEN: runtime.getSetting("TELEGRAM_BOT_TOKEN") || process.env.TELEGRAM_BOT_TOKEN
+      TELEGRAM_BOT_TOKEN: env.TELEGRAM_BOT_TOKEN
     };
     return telegramEnvSchema.parse(config);
   } catch (error) {
@@ -1108,11 +1108,11 @@ ${errorMessages}`
 
 // src/index.ts
 var TelegramClientInterface = {
-  start: async (runtime) => {
-    await validateTelegramConfig(runtime);
+  start: async (env, runtime) => {
+    const telegramConfig = await validateTelegramConfig(env);
     const tg = new TelegramClient(
       runtime,
-      runtime.getSetting("TELEGRAM_BOT_TOKEN")
+      telegramConfig.TELEGRAM_BOT_TOKEN
     );
     await tg.start();
     elizaLogger3.success(
