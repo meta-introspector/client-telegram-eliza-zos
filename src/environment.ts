@@ -1,4 +1,4 @@
-// import { IAgentRuntime } from "@elizaos/core";
+import { IAgentRuntime } from "@elizaos/core";
 import { z } from "zod";
 
 export const telegramEnvSchema = z.object({
@@ -8,12 +8,11 @@ export const telegramEnvSchema = z.object({
 export type TelegramConfig = z.infer<typeof telegramEnvSchema>;
 
 export async function validateTelegramConfig(
-    env: any
+    runtime: IAgentRuntime
 ): Promise<TelegramConfig> {
     try {
         const config = {
-            TELEGRAM_BOT_TOKEN:
-                env.TELEGRAM_BOT_TOKEN,
+            TELEGRAM_BOT_TOKEN: runtime.getSetting('TELEGRAM_BOT_TOKEN'),
         };
 
         return telegramEnvSchema.parse(config);
