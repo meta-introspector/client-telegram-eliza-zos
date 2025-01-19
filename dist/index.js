@@ -922,7 +922,7 @@ var TelegramClient = class {
     elizaLogger2.log("\u{1F4F1} Constructing new TelegramClient...");
     this.options = {
       telegram: {
-        apiRoot: runtime.getSetting("TELEGRAM_API_ROOT") || process.env.TELEGRAM_API_ROOT || "https://api.telegram.org"
+        apiRoot: runtime.getSetting("TELEGRAM_API_ROOT") || "https://api.telegram.org"
       }
     };
     this.runtime = runtime;
@@ -1088,10 +1088,10 @@ import { z } from "zod";
 var telegramEnvSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(1, "Telegram bot token is required")
 });
-async function validateTelegramConfig(env) {
+async function validateTelegramConfig(runtime) {
   try {
     const config = {
-      TELEGRAM_BOT_TOKEN: env.TELEGRAM_BOT_TOKEN
+      TELEGRAM_BOT_TOKEN: runtime.getSetting("TELEGRAM_BOT_TOKEN")
     };
     return telegramEnvSchema.parse(config);
   } catch (error) {
@@ -1108,8 +1108,8 @@ ${errorMessages}`
 
 // src/index.ts
 var TelegramClientInterface = {
-  start: async (env, runtime) => {
-    const telegramConfig = await validateTelegramConfig(env);
+  start: async (runtime) => {
+    const telegramConfig = await validateTelegramConfig(runtime);
     const tg = new TelegramClient(
       runtime,
       telegramConfig.TELEGRAM_BOT_TOKEN
