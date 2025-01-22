@@ -17,8 +17,7 @@
         }
     },
     "files": [
-        "dist",
-        "plugin.json"
+        "dist"
     ],
     "dependencies": {
         "@telegraf/types": "7.1.0",
@@ -36,5 +35,13 @@
         "lint": "eslint --fix  --cache .",
         "test": "vitest run",
         "test:watch": "vitest"
+    },
+    "agentConfig": {
+        "pluginType": "elizaos:client:1.0.0",
+        "pluginParameters": {
+            "TELEGRAM_BOT_TOKEN": {
+                "type": "string"
+            }
+        }
     }
 }
