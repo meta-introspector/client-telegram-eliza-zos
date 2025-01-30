@@ -1,5 +1,8 @@
-import { Client } from '@elizaos/core';
-
-declare const TelegramClientInterface: Client;
+declare const TelegramClientInterface: {
+    name: string;
+    config: {};
+    start: (runtime: any) => Promise<any>;
+    stop: (_runtime: any) => Promise<void>;
+};
 
 export { TelegramClientInterface, TelegramClientInterface as default };

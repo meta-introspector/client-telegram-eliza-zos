@@ -1,6 +1,3 @@
-// src/index.ts
-import { elizaLogger as elizaLogger3 } from "@elizaos/core";
-
 // src/telegramClient.ts
 import { Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
@@ -258,7 +255,8 @@ var MessageManager = class {
     );
   }
   async _initializeTeamMemberUsernames() {
-    if (!this.runtime.character.clientConfig?.telegram?.isPartOfTeam)
+    var _a, _b;
+    if (!((_b = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram) == null ? void 0 : _b.isPartOfTeam))
       return;
     const teamAgentIds = this.runtime.character.clientConfig.telegram.teamAgentIds || [];
     for (const id of teamAgentIds) {
@@ -285,25 +283,29 @@ var MessageManager = class {
     return id.toString().replace(/[^0-9]/g, "");
   }
   _isTeamMember(userId) {
-    const teamConfig = this.runtime.character.clientConfig?.telegram;
-    if (!teamConfig?.isPartOfTeam || !teamConfig.teamAgentIds) return false;
+    var _a;
+    const teamConfig = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram;
+    if (!(teamConfig == null ? void 0 : teamConfig.isPartOfTeam) || !teamConfig.teamAgentIds) return false;
     const normalizedUserId = this._getNormalizedUserId(userId);
     return teamConfig.teamAgentIds.some(
       (teamId) => this._getNormalizedUserId(teamId) === normalizedUserId
     );
   }
   _isTeamLeader() {
-    return this.bot.botInfo?.id.toString() === this.runtime.character.clientConfig?.telegram?.teamLeaderId;
+    var _a, _b, _c;
+    return ((_a = this.bot.botInfo) == null ? void 0 : _a.id.toString()) === ((_c = (_b = this.runtime.character.clientConfig) == null ? void 0 : _b.telegram) == null ? void 0 : _c.teamLeaderId);
   }
   _isTeamCoordinationRequest(content) {
+    var _a;
     const contentLower = content.toLowerCase();
-    return TEAM_COORDINATION.KEYWORDS?.some(
+    return (_a = TEAM_COORDINATION.KEYWORDS) == null ? void 0 : _a.some(
       (keyword) => contentLower.includes(keyword.toLowerCase())
     );
   }
   _isRelevantToTeamMember(content, chatId, lastAgentMemory = null) {
-    const teamConfig = this.runtime.character.clientConfig?.telegram;
-    if (this._isTeamLeader() && lastAgentMemory?.content.text) {
+    var _a, _b;
+    const teamConfig = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram;
+    if (this._isTeamLeader() && (lastAgentMemory == null ? void 0 : lastAgentMemory.content.text)) {
       const timeSinceLastMessage = Date.now() - lastAgentMemory.createdAt;
       if (timeSinceLastMessage > MESSAGE_CONSTANTS.INTEREST_DECAY_TIME) {
         return false;
@@ -314,7 +316,7 @@ var MessageManager = class {
       );
       return similarity >= MESSAGE_CONSTANTS.DEFAULT_SIMILARITY_THRESHOLD_FOLLOW_UPS;
     }
-    if (!teamConfig?.teamMemberInterestKeywords?.length) {
+    if (!((_b = teamConfig == null ? void 0 : teamConfig.teamMemberInterestKeywords) == null ? void 0 : _b.length)) {
       return false;
     }
     return teamConfig.teamMemberInterestKeywords.some(
@@ -328,17 +330,18 @@ var MessageManager = class {
     const similarity = cosineSimilarity(
       currentMessage.toLowerCase(),
       previousContext.content.toLowerCase(),
-      agentLastMessage?.toLowerCase()
+      agentLastMessage == null ? void 0 : agentLastMessage.toLowerCase()
     );
     return similarity * timeWeight;
   }
   async _shouldRespondBasedOnContext(message2, chatState) {
+    var _a, _b, _c, _d, _e, _f;
     const messageText = "text" in message2 ? message2.text : "caption" in message2 ? message2.caption : "";
     if (!messageText) return false;
     if (this._isMessageForMe(message2)) return true;
-    if (chatState?.currentHandler !== this.bot.botInfo?.id.toString())
+    if ((chatState == null ? void 0 : chatState.currentHandler) !== ((_a = this.bot.botInfo) == null ? void 0 : _a.id.toString()))
       return false;
-    if (!chatState.messages?.length) return false;
+    if (!((_b = chatState.messages) == null ? void 0 : _b.length)) return false;
     const lastUserMessage = [...chatState.messages].reverse().find(
       (m, index) => index > 0 && // Skip first message (current)
       m.userId !== this.runtime.agentId
@@ -351,27 +354,28 @@ var MessageManager = class {
       unique: false,
       count: 5
     });
-    const lastSelfSortedMemories = lastSelfMemories?.filter((m) => m.userId === this.runtime.agentId).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const lastSelfSortedMemories = lastSelfMemories == null ? void 0 : lastSelfMemories.filter((m) => m.userId === this.runtime.agentId).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     const contextSimilarity = await this._analyzeContextSimilarity(
       messageText,
       {
         content: lastUserMessage.content.text || "",
         timestamp: Date.now()
       },
-      lastSelfSortedMemories?.[0]?.content?.text
+      (_d = (_c = lastSelfSortedMemories == null ? void 0 : lastSelfSortedMemories[0]) == null ? void 0 : _c.content) == null ? void 0 : _d.text
     );
-    const similarityThreshold = this.runtime.character.clientConfig?.telegram?.messageSimilarityThreshold || chatState.contextSimilarityThreshold || MESSAGE_CONSTANTS.DEFAULT_SIMILARITY_THRESHOLD;
+    const similarityThreshold = ((_f = (_e = this.runtime.character.clientConfig) == null ? void 0 : _e.telegram) == null ? void 0 : _f.messageSimilarityThreshold) || chatState.contextSimilarityThreshold || MESSAGE_CONSTANTS.DEFAULT_SIMILARITY_THRESHOLD;
     return contextSimilarity >= similarityThreshold;
   }
   _isMessageForMe(message2) {
-    const botUsername = this.bot.botInfo?.username;
+    var _a, _b, _c, _d, _e, _f, _g;
+    const botUsername = (_a = this.bot.botInfo) == null ? void 0 : _a.username;
     if (!botUsername) return false;
     const messageText = "text" in message2 ? message2.text : "caption" in message2 ? message2.caption : "";
     if (!messageText) return false;
-    const isReplyToBot = message2.reply_to_message?.from?.is_bot === true && message2.reply_to_message?.from?.username === botUsername;
+    const isReplyToBot = ((_c = (_b = message2.reply_to_message) == null ? void 0 : _b.from) == null ? void 0 : _c.is_bot) === true && ((_e = (_d = message2.reply_to_message) == null ? void 0 : _d.from) == null ? void 0 : _e.username) === botUsername;
     const isMentioned = messageText.includes(`@${botUsername}`);
     const hasUsername = messageText.toLowerCase().includes(botUsername.toLowerCase());
-    return isReplyToBot || isMentioned || !this.runtime.character.clientConfig?.telegram?.shouldRespondOnlyToMentions && hasUsername;
+    return isReplyToBot || isMentioned || !((_g = (_f = this.runtime.character.clientConfig) == null ? void 0 : _f.telegram) == null ? void 0 : _g.shouldRespondOnlyToMentions) && hasUsername;
   }
   _checkInterest(chatId) {
     const chatState = this.interestChats[chatId];
@@ -383,13 +387,13 @@ var MessageManager = class {
       return false;
     } else if (timeSinceLastMessage > MESSAGE_CONSTANTS.PARTIAL_INTEREST_DECAY) {
       return this._isRelevantToTeamMember(
-        lastMessage?.content.text || "",
+        (lastMessage == null ? void 0 : lastMessage.content.text) || "",
         chatId
       );
     }
     if (this._isTeamLeader() && chatState.messages.length > 0) {
       if (!this._isRelevantToTeamMember(
-        lastMessage?.content.text || "",
+        (lastMessage == null ? void 0 : lastMessage.content.text) || "",
         chatId
       )) {
         const recentTeamResponses = chatState.messages.slice(-3).some(
@@ -405,16 +409,17 @@ var MessageManager = class {
   }
   // Process image messages and generate descriptions
   async processImage(message2) {
+    var _a, _b, _c;
     try {
       let imageUrl = null;
       elizaLogger.info(`Telegram Message: ${message2}`);
-      if ("photo" in message2 && message2.photo?.length > 0) {
+      if ("photo" in message2 && ((_a = message2.photo) == null ? void 0 : _a.length) > 0) {
         const photo = message2.photo[message2.photo.length - 1];
         const fileLink = await this.bot.telegram.getFileLink(
           photo.file_id
         );
         imageUrl = fileLink.toString();
-      } else if ("document" in message2 && message2.document?.mime_type?.startsWith("image/")) {
+      } else if ("document" in message2 && ((_c = (_b = message2.document) == null ? void 0 : _b.mime_type) == null ? void 0 : _c.startsWith("image/"))) {
         const fileLink = await this.bot.telegram.getFileLink(
           message2.document.file_id
         );
@@ -435,26 +440,27 @@ ${description}]` };
   }
   // Decide if the bot should respond to the message
   async _shouldRespond(message2, state) {
-    if (this.runtime.character.clientConfig?.telegram?.shouldRespondOnlyToMentions) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q;
+    if ((_b = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram) == null ? void 0 : _b.shouldRespondOnlyToMentions) {
       return this._isMessageForMe(message2);
     }
-    if ("text" in message2 && message2.text?.includes(`@${this.bot.botInfo?.username}`)) {
+    if ("text" in message2 && ((_d = message2.text) == null ? void 0 : _d.includes(`@${(_c = this.bot.botInfo) == null ? void 0 : _c.username}`))) {
       elizaLogger.info(`Bot mentioned`);
       return true;
     }
     if (message2.chat.type === "private") {
       return true;
     }
-    if ("photo" in message2 || "document" in message2 && message2.document?.mime_type?.startsWith("image/")) {
+    if ("photo" in message2 || "document" in message2 && ((_f = (_e = message2.document) == null ? void 0 : _e.mime_type) == null ? void 0 : _f.startsWith("image/"))) {
       return false;
     }
     const chatId = message2.chat.id.toString();
     const chatState = this.interestChats[chatId];
     const messageText = "text" in message2 ? message2.text : "caption" in message2 ? message2.caption : "";
-    if (this.runtime.character.clientConfig?.telegram?.isPartOfTeam && !this._isTeamLeader() && this._isRelevantToTeamMember(messageText, chatId)) {
+    if (((_h = (_g = this.runtime.character.clientConfig) == null ? void 0 : _g.telegram) == null ? void 0 : _h.isPartOfTeam) && !this._isTeamLeader() && this._isRelevantToTeamMember(messageText, chatId)) {
       return true;
     }
-    if (this.runtime.character.clientConfig?.telegram?.isPartOfTeam) {
+    if ((_j = (_i = this.runtime.character.clientConfig) == null ? void 0 : _i.telegram) == null ? void 0 : _j.isPartOfTeam) {
       if (this._isTeamCoordinationRequest(messageText)) {
         if (this._isTeamLeader()) {
           return true;
@@ -472,12 +478,15 @@ ${description}]` };
         await new Promise(
           (resolve) => setTimeout(resolve, TIMING_CONSTANTS.TEAM_MEMBER_DELAY)
         );
-        if (chatState.messages?.length) {
+        if ((_k = chatState.messages) == null ? void 0 : _k.length) {
           const recentMessages = chatState.messages.slice(
             -MESSAGE_CONSTANTS.RECENT_MESSAGE_COUNT
           );
           const leaderResponded = recentMessages.some(
-            (m) => m.userId === this.runtime.character.clientConfig?.telegram?.teamLeaderId && Date.now() - chatState.lastMessageSent < 3e3
+            (m) => {
+              var _a2, _b2;
+              return m.userId === ((_b2 = (_a2 = this.runtime.character.clientConfig) == null ? void 0 : _a2.telegram) == null ? void 0 : _b2.teamLeaderId) && Date.now() - chatState.lastMessageSent < 3e3;
+            }
           );
           if (leaderResponded) {
             return Math.random() > RESPONSE_CHANCES.AFTER_LEADER;
@@ -492,7 +501,7 @@ ${description}]` };
         await new Promise(
           (resolve) => setTimeout(resolve, randomDelay)
         );
-        if (chatState?.messages?.length) {
+        if ((_l = chatState == null ? void 0 : chatState.messages) == null ? void 0 : _l.length) {
           const recentResponses = chatState.messages.slice(
             -MESSAGE_CONSTANTS.RECENT_MESSAGE_COUNT
           );
@@ -507,13 +516,13 @@ ${description}]` };
       if (this._isMessageForMe(message2)) {
         const channelState = this.interestChats[chatId];
         if (channelState) {
-          channelState.currentHandler = this.bot.botInfo?.id.toString();
+          channelState.currentHandler = (_m = this.bot.botInfo) == null ? void 0 : _m.id.toString();
           channelState.lastMessageSent = Date.now();
         }
         return true;
       }
-      if (chatState?.currentHandler) {
-        if (chatState.currentHandler !== this.bot.botInfo?.id.toString() && this._isTeamMember(chatState.currentHandler)) {
+      if (chatState == null ? void 0 : chatState.currentHandler) {
+        if (chatState.currentHandler !== ((_n = this.bot.botInfo) == null ? void 0 : _n.id.toString()) && this._isTeamMember(chatState.currentHandler)) {
           return false;
         }
       }
@@ -530,7 +539,7 @@ ${description}]` };
         }
       }
     }
-    if (chatState?.currentHandler) {
+    if (chatState == null ? void 0 : chatState.currentHandler) {
       const shouldRespondContext = await this._shouldRespondBasedOnContext(message2, chatState);
       if (!shouldRespondContext) {
         return false;
@@ -539,7 +548,7 @@ ${description}]` };
     if ("text" in message2 || "caption" in message2 && message2.caption) {
       const shouldRespondContext = composeContext({
         state,
-        template: this.runtime.character.templates?.telegramShouldRespondTemplate || this.runtime.character?.templates?.shouldRespondTemplate || composeRandomUser(telegramShouldRespondTemplate, 2)
+        template: ((_o = this.runtime.character.templates) == null ? void 0 : _o.telegramShouldRespondTemplate) || ((_q = (_p = this.runtime.character) == null ? void 0 : _p.templates) == null ? void 0 : _q.shouldRespondTemplate) || composeRandomUser(telegramShouldRespondTemplate, 2)
       });
       const response = await generateShouldRespond({
         runtime: this.runtime,
@@ -668,24 +677,25 @@ ${description}]` };
   }
   // Main handler for incoming messages
   async handleMessage(ctx) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t;
     if (!ctx.message || !ctx.from) {
       return;
     }
-    if (this.runtime.character.clientConfig?.telegram?.shouldIgnoreBotMessages && ctx.from.is_bot) {
+    if (((_b = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram) == null ? void 0 : _b.shouldIgnoreBotMessages) && ctx.from.is_bot) {
       return;
     }
-    if (this.runtime.character.clientConfig?.telegram?.shouldIgnoreDirectMessages && ctx.chat?.type === "private") {
+    if (((_d = (_c = this.runtime.character.clientConfig) == null ? void 0 : _c.telegram) == null ? void 0 : _d.shouldIgnoreDirectMessages) && ((_e = ctx.chat) == null ? void 0 : _e.type) === "private") {
       return;
     }
     const message2 = ctx.message;
-    const chatId = ctx.chat?.id.toString();
+    const chatId = (_f = ctx.chat) == null ? void 0 : _f.id.toString();
     const messageText = "text" in message2 ? message2.text : "caption" in message2 ? message2.caption : "";
-    if (this.runtime.character.clientConfig?.telegram?.isPartOfTeam && !this.runtime.character.clientConfig?.telegram?.shouldRespondOnlyToMentions) {
+    if (((_h = (_g = this.runtime.character.clientConfig) == null ? void 0 : _g.telegram) == null ? void 0 : _h.isPartOfTeam) && !((_j = (_i = this.runtime.character.clientConfig) == null ? void 0 : _i.telegram) == null ? void 0 : _j.shouldRespondOnlyToMentions)) {
       const isDirectlyMentioned = this._isMessageForMe(message2);
       const hasInterest = this._checkInterest(chatId);
       if (!this._isTeamLeader() && this._isRelevantToTeamMember(messageText, chatId)) {
         this.interestChats[chatId] = {
-          currentHandler: this.bot.botInfo?.id.toString(),
+          currentHandler: (_k = this.bot.botInfo) == null ? void 0 : _k.id.toString(),
           lastMessageSent: Date.now(),
           messages: []
         };
@@ -700,11 +710,11 @@ ${description}]` };
           unique: false,
           count: 5
         });
-        const lastSelfSortedMemories = lastSelfMemories?.filter((m) => m.userId === this.runtime.agentId).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        const lastSelfSortedMemories = lastSelfMemories == null ? void 0 : lastSelfMemories.filter((m) => m.userId === this.runtime.agentId).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         const isRelevant = this._isRelevantToTeamMember(
           messageText,
           chatId,
-          lastSelfSortedMemories?.[0]
+          lastSelfSortedMemories == null ? void 0 : lastSelfSortedMemories[0]
         );
         if (!isRelevant) {
           delete this.interestChats[chatId];
@@ -714,13 +724,13 @@ ${description}]` };
       if (isTeamRequest) {
         if (isLeader) {
           this.interestChats[chatId] = {
-            currentHandler: this.bot.botInfo?.id.toString(),
+            currentHandler: (_l = this.bot.botInfo) == null ? void 0 : _l.id.toString(),
             lastMessageSent: Date.now(),
             messages: []
           };
         } else {
           this.interestChats[chatId] = {
-            currentHandler: this.bot.botInfo?.id.toString(),
+            currentHandler: (_m = this.bot.botInfo) == null ? void 0 : _m.id.toString(),
             lastMessageSent: Date.now(),
             messages: []
           };
@@ -730,14 +740,17 @@ ${description}]` };
         }
       }
       const otherTeamMembers = this.runtime.character.clientConfig.telegram.teamAgentIds.filter(
-        (id) => id !== this.bot.botInfo?.id.toString()
+        (id) => {
+          var _a2;
+          return id !== ((_a2 = this.bot.botInfo) == null ? void 0 : _a2.id.toString());
+        }
       );
       const mentionedTeamMember = otherTeamMembers.find((id) => {
         const username = this._getTeamMemberUsername(id);
-        return username && messageText?.includes(`@${username}`);
+        return username && (messageText == null ? void 0 : messageText.includes(`@${username}`));
       });
       if (mentionedTeamMember) {
-        if (hasInterest || this.interestChats[chatId]?.currentHandler === this.bot.botInfo?.id.toString()) {
+        if (hasInterest || ((_n = this.interestChats[chatId]) == null ? void 0 : _n.currentHandler) === ((_o = this.bot.botInfo) == null ? void 0 : _o.id.toString())) {
           delete this.interestChats[chatId];
           if (!isDirectlyMentioned) {
             return;
@@ -746,7 +759,7 @@ ${description}]` };
       }
       if (isDirectlyMentioned) {
         this.interestChats[chatId] = {
-          currentHandler: this.bot.botInfo?.id.toString(),
+          currentHandler: (_p = this.bot.botInfo) == null ? void 0 : _p.id.toString(),
           lastMessageSent: Date.now(),
           messages: []
         };
@@ -768,7 +781,7 @@ ${description}]` };
       const userId = stringToUuid(ctx.from.id.toString());
       const userName = ctx.from.username || ctx.from.first_name || "Unknown User";
       const chatId2 = stringToUuid(
-        ctx.chat?.id.toString() + "-" + this.runtime.agentId
+        ((_q = ctx.chat) == null ? void 0 : _q.id.toString()) + "-" + this.runtime.agentId
       );
       const agentId = this.runtime.agentId;
       const roomId = chatId2;
@@ -849,7 +862,7 @@ ${description}]` };
       if (shouldRespond) {
         const context = composeContext({
           state,
-          template: this.runtime.character.templates?.telegramMessageHandlerTemplate || this.runtime.character?.templates?.messageHandlerTemplate || telegramMessageHandlerTemplate
+          template: ((_r = this.runtime.character.templates) == null ? void 0 : _r.telegramMessageHandlerTemplate) || ((_t = (_s = this.runtime.character) == null ? void 0 : _s.templates) == null ? void 0 : _t.messageHandlerTemplate) || telegramMessageHandlerTemplate
         });
         const responseContent = await this._generateResponse(
           memory,
@@ -955,11 +968,12 @@ var TelegramClient = class {
     this.messageManager.bot = this.bot;
   }
   async isGroupAuthorized(ctx) {
-    const config = this.runtime.character.clientConfig?.telegram;
-    if (ctx.from?.id === ctx.botInfo?.id) {
+    var _a, _b, _c;
+    const config = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram;
+    if (((_b = ctx.from) == null ? void 0 : _b.id) === ((_c = ctx.botInfo) == null ? void 0 : _c.id)) {
       return false;
     }
-    if (!config?.shouldOnlyJoinInAllowedGroups) {
+    if (!(config == null ? void 0 : config.shouldOnlyJoinInAllowedGroups)) {
       return true;
     }
     const allowedGroups = config.allowedGroupIds || [];
@@ -995,13 +1009,14 @@ var TelegramClient = class {
       }
     });
     this.bot.on("message", async (ctx) => {
+      var _a, _b, _c, _d;
       try {
         if (!await this.isGroupAuthorized(ctx)) {
           return;
         }
         if (this.tgTrader) {
-          const userId = ctx.from?.id.toString();
-          const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
+          const userId = (_a = ctx.from) == null ? void 0 : _a.id.toString();
+          const username = ((_b = ctx.from) == null ? void 0 : _b.username) || ((_c = ctx.from) == null ? void 0 : _c.first_name) || "Unknown";
           if (!userId) {
             elizaLogger2.warn(
               "Received message from a user without an ID."
@@ -1025,7 +1040,7 @@ var TelegramClient = class {
         await this.messageManager.handleMessage(ctx);
       } catch (error) {
         elizaLogger2.error("\u274C Error handling message:", error);
-        if (error?.response?.error_code !== 403) {
+        if (((_d = error == null ? void 0 : error.response) == null ? void 0 : _d.error_code) !== 403) {
           try {
             await ctx.reply(
               "An error occurred while processing your message."
@@ -1091,7 +1106,7 @@ var telegramEnvSchema = z.object({
 async function validateTelegramConfig(runtime) {
   try {
     const config = {
-      TELEGRAM_BOT_TOKEN: runtime.getSetting("TELEGRAM_BOT_TOKEN")
+      TELEGRAM_BOT_TOKEN: runtime.getSetting("TELEGRAM_BOT_TOKEN") || process.env.TELEGRAM_BOT_TOKEN
     };
     return telegramEnvSchema.parse(config);
   } catch (error) {
@@ -1108,6 +1123,8 @@ ${errorMessages}`
 
 // src/index.ts
 var TelegramClientInterface = {
+  name: "telegram",
+  config: {},
   start: async (runtime) => {
     const telegramConfig = await validateTelegramConfig(runtime);
     const tg = new TelegramClient(
@@ -1115,13 +1132,13 @@ var TelegramClientInterface = {
       telegramConfig.TELEGRAM_BOT_TOKEN
     );
     await tg.start();
-    elizaLogger3.success(
+    console.log(
       `\u2705 Telegram client successfully started for character ${runtime.character.name}`
     );
     return tg;
   },
   stop: async (_runtime) => {
-    elizaLogger3.warn("Telegram client does not support stopping yet");
+    console.warn("Telegram client does not support stopping yet");
   }
 };
 var index_default = TelegramClientInterface;
