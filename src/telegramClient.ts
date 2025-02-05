@@ -1,6 +1,6 @@
-import { Context, Telegraf } from "telegraf";
+import { type Context, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
-import { IAgentRuntime, elizaLogger } from "@elizaos/core";
+import { type IAgentRuntime, elizaLogger } from "@elizaos/core";
 import { MessageManager } from "./messageManager.ts";
 import { getOrCreateRecommenderInBe } from "./getOrCreateRecommenderInBe.ts";
 
@@ -17,7 +17,7 @@ export class TelegramClient {
         elizaLogger.log("📱 Constructing new TelegramClient...");
         this.options = {
             telegram: {
-                apiRoot: runtime.getSetting("TELEGRAM_API_ROOT") || "https://api.telegram.org"
+                apiRoot: runtime.getSetting("TELEGRAM_API_ROOT") || process.env.TELEGRAM_API_ROOT || "https://api.telegram.org"
             },
         };
         this.runtime = runtime;
