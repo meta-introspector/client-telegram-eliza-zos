@@ -1,3 +1,6 @@
+// src/index.ts
+import { elizaLogger as elizaLogger3 } from "@elizaos/core";
+
 // src/telegramClient.ts
 import { Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
@@ -16,7 +19,187 @@ import {
 } from "@elizaos/core";
 import { stringToUuid } from "@elizaos/core";
 import { generateMessageResponse, generateShouldRespond } from "@elizaos/core";
+
+// src/templates.ts
 import { messageCompletionFooter, shouldRespondFooter } from "@elizaos/core";
+var telegramShouldRespondTemplate = `# About {{agentName}}:
+{{bio}}
+
+# RESPONSE EXAMPLES
+{{user1}}: I just saw a really great movie
+{{user2}}: Oh? Which movie?
+Result: [IGNORE]
+
+{{agentName}}: Oh, this is my favorite scene
+{{user1}}: sick
+{{user2}}: wait, why is it your favorite scene
+Result: [RESPOND]
+
+{{user1}}: stfu bot
+Result: [STOP]
+
+{{user1}}: Hey {{agent}}, can you help me with something
+Result: [RESPOND]
+
+{{user1}}: {{agentName}} stfu plz
+Result: [STOP]
+
+{{user1}}: i need help
+{{agentName}}: how can I help you?
+{{user1}}: no. i need help from someone else
+Result: [IGNORE]
+
+{{user1}}: Hey {{agent}}, can I ask you a question
+{{agentName}}: Sure, what is it
+{{user1}}: can you ask claude to create a basic react module that demonstrates a counter
+Result: [RESPOND]
+
+{{user1}}: {{agentName}} can you tell me a story
+{{agentName}}: uhhh...
+{{user1}}: please do it
+{{agentName}}: okay
+{{agentName}}: once upon a time, in a quaint little village, there was a curious girl named elara
+{{user1}}: I'm loving it, keep going
+Result: [RESPOND]
+
+{{user1}}: {{agentName}} stop responding plz
+Result: [STOP]
+
+{{user1}}: okay, i want to test something. {{agentName}}, can you say marco?
+{{agentName}}: marco
+{{user1}}: great. okay, now do it again
+Result: [RESPOND]
+
+Response options are [RESPOND], [IGNORE] and [STOP].
+
+{{agentName}} is in a room with other users and should only respond when they are being addressed, and should not respond if they are continuing a conversation that is very long.
+
+Respond with [RESPOND] to messages that are directed at {{agentName}}, or participate in conversations that are interesting or relevant to their background.
+If a message is not interesting, relevant, or does not directly address {{agentName}}, respond with [IGNORE]
+
+Also, respond with [IGNORE] to messages that are very short or do not contain much information.
+
+If a user asks {{agentName}} to be quiet, respond with [STOP]
+If {{agentName}} concludes a conversation and isn't part of the conversation anymore, respond with [STOP]
+
+IMPORTANT: {{agentName}} is particularly sensitive about being annoying, so if there is any doubt, it is better to respond with [IGNORE].
+If {{agentName}} is conversing with a user and they have not asked to stop, it is better to respond with [RESPOND].
+
+The goal is to decide whether {{agentName}} should respond to the last message.
+
+{{recentMessages}}
+
+Thread of Tweets You Are Replying To:
+
+{{formattedConversation}}
+
+# INSTRUCTIONS: Choose the option that best describes {{agentName}}'s response to the last message. Ignore messages if they are addressed to someone else.
+` + shouldRespondFooter;
+var telegramMessageHandlerTemplate = (
+  // {{goals}}
+  `# Action Examples
+{{actionExamples}}
+(Action examples are for reference only. Do not use the information from them in your response.)
+
+# Knowledge
+{{knowledge}}
+
+# Task: Generate dialog and actions for the character {{agentName}}.
+About {{agentName}}:
+{{bio}}
+{{lore}}
+
+Examples of {{agentName}}'s dialog and actions:
+{{characterMessageExamples}}
+
+{{providers}}
+
+{{attachments}}
+
+{{actions}}
+
+# Capabilities
+Note that {{agentName}} is capable of reading/seeing/hearing various forms of media, including images, videos, audio, plaintext and PDFs. Recent attachments have been included above under the "Attachments" section.
+
+{{messageDirections}}
+
+{{recentMessages}}
+
+# Task: Generate a post/reply in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
+Current Post:
+{{currentPost}}
+Thread of Tweets You Are Replying To:
+
+{{formattedConversation}}
+` + messageCompletionFooter
+);
+var telegramAutoPostTemplate = `# Action Examples
+NONE: Respond but perform no additional action. This is the default if the agent is speaking and not doing anything additional.
+
+# Task: Generate an engaging community message as {{agentName}}.
+About {{agentName}}:
+{{bio}}
+{{lore}}
+
+Examples of {{agentName}}'s dialog and actions:
+{{characterMessageExamples}}
+
+{{messageDirections}}
+
+# Recent Chat History:
+{{recentMessages}}
+
+# Instructions: Write a natural, engaging message to restart community conversation. Focus on:
+- Community engagement
+- Educational topics
+- General discusions
+- Support queries
+- Keep message warm and inviting
+- Maximum 3 lines
+- Use 1-2 emojis maximum
+- Avoid financial advice
+- Stay within known facts
+- No team member mentions
+- Be hyped, not repetitive
+- Be natural, act like a human, connect with the community
+- Don't sound so robotic like
+- Randomly grab the most rect 5 messages for some context. Validate the context randomly and use that as a reference point for your next message, but not always, only when relevant.
+- If the recent messages are mostly from {{agentName}}, make sure to create conversation starters, given there is no messages from others to reference.
+- DO NOT REPEAT THE SAME thing that you just said from your recent chat history, start the message different each time, and be organic, non reptitive.
+
+# Instructions: Write the next message for {{agentName}}. Include the "NONE" action only, as the only valid action for auto-posts is "NONE".
+` + messageCompletionFooter;
+var telegramPinnedMessageTemplate = `# Action Examples
+NONE: Respond but perform no additional action. This is the default if the agent is speaking and not doing anything additional.
+
+# Task: Generate pinned message highlight as {{agentName}}.
+About {{agentName}}:
+{{bio}}
+{{lore}}
+
+Examples of {{agentName}}'s dialog and actions:
+{{characterMessageExamples}}
+
+{{messageDirections}}
+
+# Pinned Content:
+{{pinnedMessageContent}}
+
+# Instructions: Write an exciting message to bring attention to the pinned message. Requirements:
+- Reference the message that was pinned from the pinned content
+- Create genuine excitement if needed based on the pinned content, or create genuice urgency depending on the content
+- Encourage community participation
+- If there are links like Twitter/X posts, encourage users to like/retweet/comment to spread awarenress, but directly say that, wrap that into the post so its natural.
+- Stay within announced facts only
+- No additional promises or assumptions
+- No team member mentions
+- Start the message differently each time. Don't start with the same word like "hey", "hey hey", etc. be dynamic
+- Address everyone, not as a direct reply to whoever pinned the message or wrote it, but you can reference them
+- Maximum 3-7 lines formatted nicely if needed, based on the context of the announcement
+- Use 1-2 emojis maximum
+
+# Instructions: Write the next message for {{agentName}}. Include an action, if appropriate. The only valid action for pinned message highlights is "NONE".
+` + messageCompletionFooter;
 
 // src/utils.ts
 function cosineSimilarity(text1, text2, text3) {
@@ -121,7 +304,6 @@ var RESPONSE_CHANCES = {
 var TEAM_COORDINATION = {
   KEYWORDS: [
     "team",
-    "everyone",
     "all agents",
     "team update",
     "gm team",
@@ -138,112 +320,14 @@ var TEAM_COORDINATION = {
 // src/messageManager.ts
 import fs from "fs";
 var MAX_MESSAGE_LENGTH = 4096;
-var telegramShouldRespondTemplate = `# About {{agentName}}:
-{{bio}}
-
-# RESPONSE EXAMPLES
-{{user1}}: I just saw a really great movie
-{{user2}}: Oh? Which movie?
-Result: [IGNORE]
-
-{{agentName}}: Oh, this is my favorite scene
-{{user1}}: sick
-{{user2}}: wait, why is it your favorite scene
-Result: [RESPOND]
-
-{{user1}}: stfu bot
-Result: [STOP]
-
-{{user1}}: Hey {{agentName}}, can you help me with something
-Result: [RESPOND]
-
-{{user1}}: {{agentName}} stfu plz
-Result: [STOP]
-
-{{user1}}: i need help
-{{agentName}}: how can I help you?
-{{user1}}: no. i need help from someone else
-Result: [IGNORE]
-
-{{user1}}: Hey {{agentName}}, can I ask you a question
-{{agentName}}: Sure, what is it
-{{user1}}: can you ask claude to create a basic react module that demonstrates a counter
-Result: [RESPOND]
-
-{{user1}}: {{agentName}} can you tell me a story
-{{agentName}}: uhhh...
-{{user1}}: please do it
-{{agentName}}: okay
-{{agentName}}: once upon a time, in a quaint little village, there was a curious girl named elara
-{{user1}}: I'm loving it, keep going
-Result: [RESPOND]
-
-{{user1}}: {{agentName}} stop responding plz
-Result: [STOP]
-
-{{user1}}: okay, i want to test something. {{agentName}}, can you say marco?
-{{agentName}}: marco
-{{user1}}: great. okay, now do it again
-Result: [RESPOND]
-
-Response options are [RESPOND], [IGNORE] and [STOP].
-
-{{agentName}} is in a room with other users and should only respond when they are being addressed, and should not respond if they are continuing a conversation that is very long.
-
-Respond with [RESPOND] to messages that are directed at {{agentName}}, or participate in conversations that are interesting or relevant to their background.
-If a message is not interesting, relevant, or does not directly address {{agentName}}, respond with [IGNORE]
-
-Also, respond with [IGNORE] to messages that are very short or do not contain much information.
-
-If a user asks {{agentName}} to be quiet, respond with [STOP]
-If {{agentName}} concludes a conversation and isn't part of the conversation anymore, respond with [STOP]
-
-IMPORTANT: {{agentName}} is particularly sensitive about being annoying, so if there is any doubt, it is better to respond with [IGNORE].
-If {{agentName}} is conversing with a user and they have not asked to stop, it is better to respond with [RESPOND].
-
-The goal is to decide whether {{agentName}} should respond to the last message.
-
-{{recentMessages}}
-
-# INSTRUCTIONS: Choose the option that best describes {{agentName}}'s response to the last message. Ignore messages if they are addressed to someone else.
-` + shouldRespondFooter;
-var telegramMessageHandlerTemplate = (
-  // {{goals}}
-  `
-{{actionExamples}}
-(Action examples are for reference only. Do not use the information from them in your response.)
-
-# Knowledge
-{{knowledge}}
-
-# About {{agentName}}:
-{{bio}}
-{{lore}}
-
-{{characterMessageExamples}}
-
-{{providers}}
-
-{{attachments}}
-
-{{actions}}
-
-# Capabilities
-Note that {{agentName}} is capable of reading/seeing/hearing various forms of media, including images, videos, audio, plaintext and PDFs. Recent attachments have been included above under the "Attachments" section.
-
-{{messageDirections}}
-
-{{recentMessages}}
-
-# Task: Generate a reply in the voice, style and perspective of {{agentName}} while using the thread above as additional context. You are replying on Telegram.
-{{formattedConversation}}
-` + messageCompletionFooter
-);
 var MessageManager = class {
   bot;
   runtime;
   interestChats = {};
   teamMemberUsernames = /* @__PURE__ */ new Map();
+  autoPostConfig;
+  lastChannelActivity = {};
+  autoPostInterval;
   constructor(bot, runtime) {
     this.bot = bot;
     this.runtime = runtime;
@@ -253,10 +337,20 @@ var MessageManager = class {
         error
       )
     );
+    this.autoPostConfig = {
+      enabled: this.runtime.character.clientConfig?.telegram?.autoPost?.enabled || false,
+      monitorTime: this.runtime.character.clientConfig?.telegram?.autoPost?.monitorTime || 3e5,
+      inactivityThreshold: this.runtime.character.clientConfig?.telegram?.autoPost?.inactivityThreshold || 36e5,
+      mainChannelId: this.runtime.character.clientConfig?.telegram?.autoPost?.mainChannelId,
+      pinnedMessagesGroups: this.runtime.character.clientConfig?.telegram?.autoPost?.pinnedMessagesGroups || [],
+      minTimeBetweenPosts: this.runtime.character.clientConfig?.telegram?.autoPost?.minTimeBetweenPosts || 72e5
+    };
+    if (this.autoPostConfig.enabled) {
+      this._startAutoPostMonitoring();
+    }
   }
   async _initializeTeamMemberUsernames() {
-    var _a, _b;
-    if (!((_b = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram) == null ? void 0 : _b.isPartOfTeam))
+    if (!this.runtime.character.clientConfig?.telegram?.isPartOfTeam)
       return;
     const teamAgentIds = this.runtime.character.clientConfig.telegram.teamAgentIds || [];
     for (const id of teamAgentIds) {
@@ -276,6 +370,204 @@ var MessageManager = class {
       }
     }
   }
+  _startAutoPostMonitoring() {
+    if (this.bot.botInfo) {
+      elizaLogger.info(
+        "[AutoPost Telegram] Bot ready, starting monitoring"
+      );
+      this._initializeAutoPost();
+    } else {
+      elizaLogger.info(
+        "[AutoPost Telegram] Bot not ready, waiting for ready event"
+      );
+      this.bot.telegram.getMe().then(() => {
+        elizaLogger.info(
+          "[AutoPost Telegram] Bot ready, starting monitoring"
+        );
+        this._initializeAutoPost();
+      });
+    }
+  }
+  _initializeAutoPost() {
+    setTimeout(() => {
+      this.autoPostInterval = setInterval(() => {
+        this._checkChannelActivity();
+      }, Math.floor(Math.random() * (4 * 60 * 60 * 1e3) + 2 * 60 * 60 * 1e3));
+    }, 5e3);
+  }
+  async _checkChannelActivity() {
+    if (!this.autoPostConfig.enabled || !this.autoPostConfig.mainChannelId)
+      return;
+    try {
+      const now = Date.now();
+      const lastActivityTime = this.lastChannelActivity[this.autoPostConfig.mainChannelId] || 0;
+      const timeSinceLastMessage = now - lastActivityTime;
+      const timeSinceLastAutoPost = now - (this.autoPostConfig.lastAutoPost || 0);
+      const randomThreshold = this.autoPostConfig.inactivityThreshold + (Math.random() * 18e5 - 9e5);
+      if (timeSinceLastMessage > randomThreshold && timeSinceLastAutoPost > (this.autoPostConfig.minTimeBetweenPosts || 0)) {
+        try {
+          const roomId = stringToUuid(
+            this.autoPostConfig.mainChannelId + "-" + this.runtime.agentId
+          );
+          const memory = {
+            id: stringToUuid(`autopost-${Date.now()}`),
+            userId: this.runtime.agentId,
+            agentId: this.runtime.agentId,
+            roomId,
+            content: {
+              text: "AUTO_POST_ENGAGEMENT",
+              source: "telegram"
+            },
+            embedding: getEmbeddingZeroVector(),
+            createdAt: Date.now()
+          };
+          let state = await this.runtime.composeState(memory, {
+            telegramBot: this.bot,
+            agentName: this.runtime.character.name
+          });
+          const context = composeContext({
+            state,
+            template: this.runtime.character.templates?.telegramAutoPostTemplate || telegramAutoPostTemplate
+          });
+          const responseContent = await this._generateResponse(
+            memory,
+            state,
+            context
+          );
+          if (!responseContent?.text) return;
+          console.log(
+            `[Auto Post Telegram] Recent Messages: ${responseContent}`
+          );
+          const messages = await Promise.all(
+            this.splitMessage(responseContent.text.trim()).map(
+              (chunk) => this.bot.telegram.sendMessage(
+                this.autoPostConfig.mainChannelId,
+                chunk
+              )
+            )
+          );
+          const memories = messages.map((m) => ({
+            id: stringToUuid(
+              roomId + "-" + m.message_id.toString()
+            ),
+            userId: this.runtime.agentId,
+            agentId: this.runtime.agentId,
+            content: {
+              ...responseContent,
+              text: m.text
+            },
+            roomId,
+            embedding: getEmbeddingZeroVector(),
+            createdAt: m.date * 1e3
+          }));
+          for (const m of memories) {
+            await this.runtime.messageManager.createMemory(m);
+          }
+          this.autoPostConfig.lastAutoPost = Date.now();
+          state = await this.runtime.updateRecentMessageState(state);
+          await this.runtime.evaluate(memory, state, true);
+        } catch (error) {
+          elizaLogger.warn("[AutoPost Telegram] Error:", error);
+        }
+      } else {
+        elizaLogger.warn(
+          "[AutoPost Telegram] Activity within threshold. Not posting."
+        );
+      }
+    } catch (error) {
+      elizaLogger.warn(
+        "[AutoPost Telegram] Error checking channel activity:",
+        error
+      );
+    }
+  }
+  async _monitorPinnedMessages(ctx) {
+    if (!this.autoPostConfig.pinnedMessagesGroups.length) {
+      elizaLogger.warn(
+        "[AutoPost Telegram] Auto post config no pinned message groups"
+      );
+      return;
+    }
+    if (!ctx.message || !("pinned_message" in ctx.message)) {
+      return;
+    }
+    const pinnedMessage = ctx.message.pinned_message;
+    if (!pinnedMessage) return;
+    if (!this.autoPostConfig.pinnedMessagesGroups.includes(
+      ctx.chat.id.toString()
+    ))
+      return;
+    const mainChannel = this.autoPostConfig.mainChannelId;
+    if (!mainChannel) return;
+    try {
+      elizaLogger.info(
+        `[AutoPost Telegram] Processing pinned message in group ${ctx.chat.id}`
+      );
+      const messageContent = "text" in pinnedMessage && typeof pinnedMessage.text === "string" ? pinnedMessage.text : "caption" in pinnedMessage && typeof pinnedMessage.caption === "string" ? pinnedMessage.caption : "New pinned message";
+      const roomId = stringToUuid(
+        mainChannel + "-" + this.runtime.agentId
+      );
+      const memory = {
+        id: stringToUuid(`pinned-${Date.now()}`),
+        userId: this.runtime.agentId,
+        agentId: this.runtime.agentId,
+        roomId,
+        content: {
+          text: messageContent,
+          source: "telegram",
+          metadata: {
+            messageId: pinnedMessage.message_id,
+            pinnedMessageData: pinnedMessage
+          }
+        },
+        embedding: getEmbeddingZeroVector(),
+        createdAt: Date.now()
+      };
+      let state = await this.runtime.composeState(memory, {
+        telegramBot: this.bot,
+        pinnedMessageContent: messageContent,
+        pinnedGroupId: ctx.chat.id.toString(),
+        agentName: this.runtime.character.name
+      });
+      const context = composeContext({
+        state,
+        template: this.runtime.character.templates?.telegramPinnedMessageTemplate || telegramPinnedMessageTemplate
+      });
+      const responseContent = await this._generateResponse(
+        memory,
+        state,
+        context
+      );
+      if (!responseContent?.text) return;
+      const messages = await Promise.all(
+        this.splitMessage(responseContent.text.trim()).map(
+          (chunk) => this.bot.telegram.sendMessage(mainChannel, chunk)
+        )
+      );
+      const memories = messages.map((m) => ({
+        id: stringToUuid(roomId + "-" + m.message_id.toString()),
+        userId: this.runtime.agentId,
+        agentId: this.runtime.agentId,
+        content: {
+          ...responseContent,
+          text: m.text
+        },
+        roomId,
+        embedding: getEmbeddingZeroVector(),
+        createdAt: m.date * 1e3
+      }));
+      for (const m of memories) {
+        await this.runtime.messageManager.createMemory(m);
+      }
+      state = await this.runtime.updateRecentMessageState(state);
+      await this.runtime.evaluate(memory, state, true);
+    } catch (error) {
+      elizaLogger.warn(
+        `[AutoPost Telegram] Error processing pinned message:`,
+        error
+      );
+    }
+  }
   _getTeamMemberUsername(id) {
     return this.teamMemberUsernames.get(id);
   }
@@ -283,29 +575,25 @@ var MessageManager = class {
     return id.toString().replace(/[^0-9]/g, "");
   }
   _isTeamMember(userId) {
-    var _a;
-    const teamConfig = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram;
-    if (!(teamConfig == null ? void 0 : teamConfig.isPartOfTeam) || !teamConfig.teamAgentIds) return false;
+    const teamConfig = this.runtime.character.clientConfig?.telegram;
+    if (!teamConfig?.isPartOfTeam || !teamConfig.teamAgentIds) return false;
     const normalizedUserId = this._getNormalizedUserId(userId);
     return teamConfig.teamAgentIds.some(
       (teamId) => this._getNormalizedUserId(teamId) === normalizedUserId
     );
   }
   _isTeamLeader() {
-    var _a, _b, _c;
-    return ((_a = this.bot.botInfo) == null ? void 0 : _a.id.toString()) === ((_c = (_b = this.runtime.character.clientConfig) == null ? void 0 : _b.telegram) == null ? void 0 : _c.teamLeaderId);
+    return this.bot.botInfo?.id.toString() === this.runtime.character.clientConfig?.telegram?.teamLeaderId;
   }
   _isTeamCoordinationRequest(content) {
-    var _a;
     const contentLower = content.toLowerCase();
-    return (_a = TEAM_COORDINATION.KEYWORDS) == null ? void 0 : _a.some(
+    return TEAM_COORDINATION.KEYWORDS?.some(
       (keyword) => contentLower.includes(keyword.toLowerCase())
     );
   }
   _isRelevantToTeamMember(content, chatId, lastAgentMemory = null) {
-    var _a, _b;
-    const teamConfig = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram;
-    if (this._isTeamLeader() && (lastAgentMemory == null ? void 0 : lastAgentMemory.content.text)) {
+    const teamConfig = this.runtime.character.clientConfig?.telegram;
+    if (this._isTeamLeader() && lastAgentMemory?.content.text) {
       const timeSinceLastMessage = Date.now() - lastAgentMemory.createdAt;
       if (timeSinceLastMessage > MESSAGE_CONSTANTS.INTEREST_DECAY_TIME) {
         return false;
@@ -316,7 +604,7 @@ var MessageManager = class {
       );
       return similarity >= MESSAGE_CONSTANTS.DEFAULT_SIMILARITY_THRESHOLD_FOLLOW_UPS;
     }
-    if (!((_b = teamConfig == null ? void 0 : teamConfig.teamMemberInterestKeywords) == null ? void 0 : _b.length)) {
+    if (!teamConfig?.teamMemberInterestKeywords?.length) {
       return false;
     }
     return teamConfig.teamMemberInterestKeywords.some(
@@ -330,18 +618,17 @@ var MessageManager = class {
     const similarity = cosineSimilarity(
       currentMessage.toLowerCase(),
       previousContext.content.toLowerCase(),
-      agentLastMessage == null ? void 0 : agentLastMessage.toLowerCase()
+      agentLastMessage?.toLowerCase()
     );
     return similarity * timeWeight;
   }
   async _shouldRespondBasedOnContext(message2, chatState) {
-    var _a, _b, _c, _d, _e, _f;
     const messageText = "text" in message2 ? message2.text : "caption" in message2 ? message2.caption : "";
     if (!messageText) return false;
     if (this._isMessageForMe(message2)) return true;
-    if ((chatState == null ? void 0 : chatState.currentHandler) !== ((_a = this.bot.botInfo) == null ? void 0 : _a.id.toString()))
+    if (chatState?.currentHandler !== this.bot.botInfo?.id.toString())
       return false;
-    if (!((_b = chatState.messages) == null ? void 0 : _b.length)) return false;
+    if (!chatState.messages?.length) return false;
     const lastUserMessage = [...chatState.messages].reverse().find(
       (m, index) => index > 0 && // Skip first message (current)
       m.userId !== this.runtime.agentId
@@ -354,28 +641,27 @@ var MessageManager = class {
       unique: false,
       count: 5
     });
-    const lastSelfSortedMemories = lastSelfMemories == null ? void 0 : lastSelfMemories.filter((m) => m.userId === this.runtime.agentId).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const lastSelfSortedMemories = lastSelfMemories?.filter((m) => m.userId === this.runtime.agentId).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     const contextSimilarity = await this._analyzeContextSimilarity(
       messageText,
       {
         content: lastUserMessage.content.text || "",
         timestamp: Date.now()
       },
-      (_d = (_c = lastSelfSortedMemories == null ? void 0 : lastSelfSortedMemories[0]) == null ? void 0 : _c.content) == null ? void 0 : _d.text
+      lastSelfSortedMemories?.[0]?.content?.text
     );
-    const similarityThreshold = ((_f = (_e = this.runtime.character.clientConfig) == null ? void 0 : _e.telegram) == null ? void 0 : _f.messageSimilarityThreshold) || chatState.contextSimilarityThreshold || MESSAGE_CONSTANTS.DEFAULT_SIMILARITY_THRESHOLD;
+    const similarityThreshold = this.runtime.character.clientConfig?.telegram?.messageSimilarityThreshold || chatState.contextSimilarityThreshold || MESSAGE_CONSTANTS.DEFAULT_SIMILARITY_THRESHOLD;
     return contextSimilarity >= similarityThreshold;
   }
   _isMessageForMe(message2) {
-    var _a, _b, _c, _d, _e, _f, _g;
-    const botUsername = (_a = this.bot.botInfo) == null ? void 0 : _a.username;
+    const botUsername = this.bot.botInfo?.username;
     if (!botUsername) return false;
     const messageText = "text" in message2 ? message2.text : "caption" in message2 ? message2.caption : "";
     if (!messageText) return false;
-    const isReplyToBot = ((_c = (_b = message2.reply_to_message) == null ? void 0 : _b.from) == null ? void 0 : _c.is_bot) === true && ((_e = (_d = message2.reply_to_message) == null ? void 0 : _d.from) == null ? void 0 : _e.username) === botUsername;
+    const isReplyToBot = message2.reply_to_message?.from?.is_bot === true && message2.reply_to_message?.from?.username === botUsername;
     const isMentioned = messageText.includes(`@${botUsername}`);
     const hasUsername = messageText.toLowerCase().includes(botUsername.toLowerCase());
-    return isReplyToBot || isMentioned || !((_g = (_f = this.runtime.character.clientConfig) == null ? void 0 : _f.telegram) == null ? void 0 : _g.shouldRespondOnlyToMentions) && hasUsername;
+    return isReplyToBot || isMentioned || !this.runtime.character.clientConfig?.telegram?.shouldRespondOnlyToMentions && hasUsername;
   }
   _checkInterest(chatId) {
     const chatState = this.interestChats[chatId];
@@ -387,13 +673,13 @@ var MessageManager = class {
       return false;
     } else if (timeSinceLastMessage > MESSAGE_CONSTANTS.PARTIAL_INTEREST_DECAY) {
       return this._isRelevantToTeamMember(
-        (lastMessage == null ? void 0 : lastMessage.content.text) || "",
+        lastMessage?.content.text || "",
         chatId
       );
     }
     if (this._isTeamLeader() && chatState.messages.length > 0) {
       if (!this._isRelevantToTeamMember(
-        (lastMessage == null ? void 0 : lastMessage.content.text) || "",
+        lastMessage?.content.text || "",
         chatId
       )) {
         const recentTeamResponses = chatState.messages.slice(-3).some(
@@ -409,17 +695,16 @@ var MessageManager = class {
   }
   // Process image messages and generate descriptions
   async processImage(message2) {
-    var _a, _b, _c;
     try {
       let imageUrl = null;
       elizaLogger.info(`Telegram Message: ${message2}`);
-      if ("photo" in message2 && ((_a = message2.photo) == null ? void 0 : _a.length) > 0) {
+      if ("photo" in message2 && message2.photo?.length > 0) {
         const photo = message2.photo[message2.photo.length - 1];
         const fileLink = await this.bot.telegram.getFileLink(
           photo.file_id
         );
         imageUrl = fileLink.toString();
-      } else if ("document" in message2 && ((_c = (_b = message2.document) == null ? void 0 : _b.mime_type) == null ? void 0 : _c.startsWith("image/"))) {
+      } else if ("document" in message2 && message2.document?.mime_type?.startsWith("image/")) {
         const fileLink = await this.bot.telegram.getFileLink(
           message2.document.file_id
         );
@@ -440,27 +725,26 @@ ${description}]` };
   }
   // Decide if the bot should respond to the message
   async _shouldRespond(message2, state) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q;
-    if ((_b = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram) == null ? void 0 : _b.shouldRespondOnlyToMentions) {
+    if (this.runtime.character.clientConfig?.telegram?.shouldRespondOnlyToMentions) {
       return this._isMessageForMe(message2);
     }
-    if ("text" in message2 && ((_d = message2.text) == null ? void 0 : _d.includes(`@${(_c = this.bot.botInfo) == null ? void 0 : _c.username}`))) {
+    if ("text" in message2 && message2.text?.includes(`@${this.bot.botInfo?.username}`)) {
       elizaLogger.info(`Bot mentioned`);
       return true;
     }
     if (message2.chat.type === "private") {
       return true;
     }
-    if ("photo" in message2 || "document" in message2 && ((_f = (_e = message2.document) == null ? void 0 : _e.mime_type) == null ? void 0 : _f.startsWith("image/"))) {
+    if ("photo" in message2 || "document" in message2 && message2.document?.mime_type?.startsWith("image/")) {
       return false;
     }
     const chatId = message2.chat.id.toString();
     const chatState = this.interestChats[chatId];
     const messageText = "text" in message2 ? message2.text : "caption" in message2 ? message2.caption : "";
-    if (((_h = (_g = this.runtime.character.clientConfig) == null ? void 0 : _g.telegram) == null ? void 0 : _h.isPartOfTeam) && !this._isTeamLeader() && this._isRelevantToTeamMember(messageText, chatId)) {
+    if (this.runtime.character.clientConfig?.telegram?.isPartOfTeam && !this._isTeamLeader() && this._isRelevantToTeamMember(messageText, chatId)) {
       return true;
     }
-    if ((_j = (_i = this.runtime.character.clientConfig) == null ? void 0 : _i.telegram) == null ? void 0 : _j.isPartOfTeam) {
+    if (this.runtime.character.clientConfig?.telegram?.isPartOfTeam) {
       if (this._isTeamCoordinationRequest(messageText)) {
         if (this._isTeamLeader()) {
           return true;
@@ -478,15 +762,12 @@ ${description}]` };
         await new Promise(
           (resolve) => setTimeout(resolve, TIMING_CONSTANTS.TEAM_MEMBER_DELAY)
         );
-        if ((_k = chatState.messages) == null ? void 0 : _k.length) {
+        if (chatState.messages?.length) {
           const recentMessages = chatState.messages.slice(
             -MESSAGE_CONSTANTS.RECENT_MESSAGE_COUNT
           );
           const leaderResponded = recentMessages.some(
-            (m) => {
-              var _a2, _b2;
-              return m.userId === ((_b2 = (_a2 = this.runtime.character.clientConfig) == null ? void 0 : _a2.telegram) == null ? void 0 : _b2.teamLeaderId) && Date.now() - chatState.lastMessageSent < 3e3;
-            }
+            (m) => m.userId === this.runtime.character.clientConfig?.telegram?.teamLeaderId && Date.now() - chatState.lastMessageSent < 3e3
           );
           if (leaderResponded) {
             return Math.random() > RESPONSE_CHANCES.AFTER_LEADER;
@@ -501,7 +782,7 @@ ${description}]` };
         await new Promise(
           (resolve) => setTimeout(resolve, randomDelay)
         );
-        if ((_l = chatState == null ? void 0 : chatState.messages) == null ? void 0 : _l.length) {
+        if (chatState?.messages?.length) {
           const recentResponses = chatState.messages.slice(
             -MESSAGE_CONSTANTS.RECENT_MESSAGE_COUNT
           );
@@ -516,13 +797,13 @@ ${description}]` };
       if (this._isMessageForMe(message2)) {
         const channelState = this.interestChats[chatId];
         if (channelState) {
-          channelState.currentHandler = (_m = this.bot.botInfo) == null ? void 0 : _m.id.toString();
+          channelState.currentHandler = this.bot.botInfo?.id.toString();
           channelState.lastMessageSent = Date.now();
         }
         return true;
       }
-      if (chatState == null ? void 0 : chatState.currentHandler) {
-        if (chatState.currentHandler !== ((_n = this.bot.botInfo) == null ? void 0 : _n.id.toString()) && this._isTeamMember(chatState.currentHandler)) {
+      if (chatState?.currentHandler) {
+        if (chatState.currentHandler !== this.bot.botInfo?.id.toString() && this._isTeamMember(chatState.currentHandler)) {
           return false;
         }
       }
@@ -539,7 +820,7 @@ ${description}]` };
         }
       }
     }
-    if (chatState == null ? void 0 : chatState.currentHandler) {
+    if (chatState?.currentHandler) {
       const shouldRespondContext = await this._shouldRespondBasedOnContext(message2, chatState);
       if (!shouldRespondContext) {
         return false;
@@ -548,7 +829,7 @@ ${description}]` };
     if ("text" in message2 || "caption" in message2 && message2.caption) {
       const shouldRespondContext = composeContext({
         state,
-        template: ((_o = this.runtime.character.templates) == null ? void 0 : _o.telegramShouldRespondTemplate) || ((_q = (_p = this.runtime.character) == null ? void 0 : _p.templates) == null ? void 0 : _q.shouldRespondTemplate) || composeRandomUser(telegramShouldRespondTemplate, 2)
+        template: this.runtime.character.templates?.telegramShouldRespondTemplate || this.runtime.character?.templates?.shouldRespondTemplate || composeRandomUser(telegramShouldRespondTemplate, 2)
       });
       const response = await generateShouldRespond({
         runtime: this.runtime,
@@ -563,11 +844,31 @@ ${description}]` };
   async sendMessageInChunks(ctx, content, replyToMessageId) {
     if (content.attachments && content.attachments.length > 0) {
       content.attachments.map(async (attachment) => {
-        if (attachment.contentType === "image/gif") {
-          await this.sendAnimation(ctx, attachment.url, attachment.description);
-        } else if (attachment.contentType.startsWith("image")) {
-          await this.sendImage(ctx, attachment.url, attachment.description);
+        const typeMap = {
+          "image/gif": "animation" /* ANIMATION */,
+          image: "photo" /* PHOTO */,
+          doc: "document" /* DOCUMENT */,
+          video: "video" /* VIDEO */,
+          audio: "audio" /* AUDIO */
+        };
+        let mediaType = void 0;
+        for (const prefix in typeMap) {
+          if (attachment.contentType.startsWith(prefix)) {
+            mediaType = typeMap[prefix];
+            break;
+          }
         }
+        if (!mediaType) {
+          throw new Error(
+            `Unsupported Telegram attachment content type: ${attachment.contentType}`
+          );
+        }
+        await this.sendMedia(
+          ctx,
+          attachment.url,
+          mediaType,
+          attachment.description
+        );
       });
     } else {
       const chunks = this.splitMessage(content.text);
@@ -587,56 +888,50 @@ ${description}]` };
       return sentMessages;
     }
   }
-  async sendImage(ctx, imagePath, caption) {
+  async sendMedia(ctx, mediaPath, type, caption) {
     try {
-      if (/^(http|https):\/\//.test(imagePath)) {
-        await ctx.telegram.sendPhoto(ctx.chat.id, imagePath, {
-          caption
-        });
-      } else {
-        if (!fs.existsSync(imagePath)) {
-          throw new Error(`File not found: ${imagePath}`);
-        }
-        const fileStream = fs.createReadStream(imagePath);
-        await ctx.telegram.sendPhoto(
-          ctx.chat.id,
-          {
-            source: fileStream
-          },
-          {
-            caption
-          }
-        );
+      const isUrl = /^(http|https):\/\//.test(mediaPath);
+      const sendFunctionMap = {
+        ["photo" /* PHOTO */]: ctx.telegram.sendPhoto.bind(ctx.telegram),
+        ["video" /* VIDEO */]: ctx.telegram.sendVideo.bind(ctx.telegram),
+        ["document" /* DOCUMENT */]: ctx.telegram.sendDocument.bind(
+          ctx.telegram
+        ),
+        ["audio" /* AUDIO */]: ctx.telegram.sendAudio.bind(ctx.telegram),
+        ["animation" /* ANIMATION */]: ctx.telegram.sendAnimation.bind(
+          ctx.telegram
+        )
+      };
+      const sendFunction = sendFunctionMap[type];
+      if (!sendFunction) {
+        throw new Error(`Unsupported media type: ${type}`);
       }
-      elizaLogger.info(`Image sent successfully: ${imagePath}`);
-    } catch (error) {
-      elizaLogger.error("Error sending image:", error);
-    }
-  }
-  async sendAnimation(ctx, animationPath, caption) {
-    try {
-      if (/^(http|https):\/\//.test(animationPath)) {
-        await ctx.telegram.sendAnimation(ctx.chat.id, animationPath, {
-          caption
-        });
+      if (isUrl) {
+        await sendFunction(ctx.chat.id, mediaPath, { caption });
       } else {
-        if (!fs.existsSync(animationPath)) {
-          throw new Error(`File not found: ${animationPath}`);
+        if (!fs.existsSync(mediaPath)) {
+          throw new Error(`File not found at path: ${mediaPath}`);
         }
-        const fileStream = fs.createReadStream(animationPath);
-        await ctx.telegram.sendAnimation(
-          ctx.chat.id,
-          {
-            source: fileStream
-          },
-          {
-            caption
-          }
-        );
+        const fileStream = fs.createReadStream(mediaPath);
+        try {
+          await sendFunction(
+            ctx.chat.id,
+            { source: fileStream },
+            { caption }
+          );
+        } finally {
+          fileStream.destroy();
+        }
       }
-      elizaLogger.info(`Animation sent successfully: ${animationPath}`);
+      elizaLogger.info(
+        `${type.charAt(0).toUpperCase() + type.slice(1)} sent successfully: ${mediaPath}`
+      );
     } catch (error) {
-      elizaLogger.error("Error sending animation:", error);
+      elizaLogger.error(
+        `Failed to send ${type}. Path: ${mediaPath}. Error: ${error.message}`
+      );
+      elizaLogger.debug(error.stack);
+      throw error;
     }
   }
   // Split message into smaller parts
@@ -677,25 +972,29 @@ ${description}]` };
   }
   // Main handler for incoming messages
   async handleMessage(ctx) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t;
     if (!ctx.message || !ctx.from) {
       return;
     }
-    if (((_b = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram) == null ? void 0 : _b.shouldIgnoreBotMessages) && ctx.from.is_bot) {
+    this.lastChannelActivity[ctx.chat.id.toString()] = Date.now();
+    if (this.autoPostConfig.enabled && ctx.message && "pinned_message" in ctx.message) {
+      await this._monitorPinnedMessages(ctx);
       return;
     }
-    if (((_d = (_c = this.runtime.character.clientConfig) == null ? void 0 : _c.telegram) == null ? void 0 : _d.shouldIgnoreDirectMessages) && ((_e = ctx.chat) == null ? void 0 : _e.type) === "private") {
+    if (this.runtime.character.clientConfig?.telegram?.shouldIgnoreBotMessages && ctx.from.is_bot) {
+      return;
+    }
+    if (this.runtime.character.clientConfig?.telegram?.shouldIgnoreDirectMessages && ctx.chat?.type === "private") {
       return;
     }
     const message2 = ctx.message;
-    const chatId = (_f = ctx.chat) == null ? void 0 : _f.id.toString();
+    const chatId = ctx.chat?.id.toString();
     const messageText = "text" in message2 ? message2.text : "caption" in message2 ? message2.caption : "";
-    if (((_h = (_g = this.runtime.character.clientConfig) == null ? void 0 : _g.telegram) == null ? void 0 : _h.isPartOfTeam) && !((_j = (_i = this.runtime.character.clientConfig) == null ? void 0 : _i.telegram) == null ? void 0 : _j.shouldRespondOnlyToMentions)) {
+    if (this.runtime.character.clientConfig?.telegram?.isPartOfTeam && !this.runtime.character.clientConfig?.telegram?.shouldRespondOnlyToMentions) {
       const isDirectlyMentioned = this._isMessageForMe(message2);
       const hasInterest = this._checkInterest(chatId);
       if (!this._isTeamLeader() && this._isRelevantToTeamMember(messageText, chatId)) {
         this.interestChats[chatId] = {
-          currentHandler: (_k = this.bot.botInfo) == null ? void 0 : _k.id.toString(),
+          currentHandler: this.bot.botInfo?.id.toString(),
           lastMessageSent: Date.now(),
           messages: []
         };
@@ -710,11 +1009,11 @@ ${description}]` };
           unique: false,
           count: 5
         });
-        const lastSelfSortedMemories = lastSelfMemories == null ? void 0 : lastSelfMemories.filter((m) => m.userId === this.runtime.agentId).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        const lastSelfSortedMemories = lastSelfMemories?.filter((m) => m.userId === this.runtime.agentId).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         const isRelevant = this._isRelevantToTeamMember(
           messageText,
           chatId,
-          lastSelfSortedMemories == null ? void 0 : lastSelfSortedMemories[0]
+          lastSelfSortedMemories?.[0]
         );
         if (!isRelevant) {
           delete this.interestChats[chatId];
@@ -724,13 +1023,13 @@ ${description}]` };
       if (isTeamRequest) {
         if (isLeader) {
           this.interestChats[chatId] = {
-            currentHandler: (_l = this.bot.botInfo) == null ? void 0 : _l.id.toString(),
+            currentHandler: this.bot.botInfo?.id.toString(),
             lastMessageSent: Date.now(),
             messages: []
           };
         } else {
           this.interestChats[chatId] = {
-            currentHandler: (_m = this.bot.botInfo) == null ? void 0 : _m.id.toString(),
+            currentHandler: this.bot.botInfo?.id.toString(),
             lastMessageSent: Date.now(),
             messages: []
           };
@@ -740,17 +1039,14 @@ ${description}]` };
         }
       }
       const otherTeamMembers = this.runtime.character.clientConfig.telegram.teamAgentIds.filter(
-        (id) => {
-          var _a2;
-          return id !== ((_a2 = this.bot.botInfo) == null ? void 0 : _a2.id.toString());
-        }
+        (id) => id !== this.bot.botInfo?.id.toString()
       );
       const mentionedTeamMember = otherTeamMembers.find((id) => {
         const username = this._getTeamMemberUsername(id);
-        return username && (messageText == null ? void 0 : messageText.includes(`@${username}`));
+        return username && messageText?.includes(`@${username}`);
       });
       if (mentionedTeamMember) {
-        if (hasInterest || ((_n = this.interestChats[chatId]) == null ? void 0 : _n.currentHandler) === ((_o = this.bot.botInfo) == null ? void 0 : _o.id.toString())) {
+        if (hasInterest || this.interestChats[chatId]?.currentHandler === this.bot.botInfo?.id.toString()) {
           delete this.interestChats[chatId];
           if (!isDirectlyMentioned) {
             return;
@@ -759,7 +1055,7 @@ ${description}]` };
       }
       if (isDirectlyMentioned) {
         this.interestChats[chatId] = {
-          currentHandler: (_p = this.bot.botInfo) == null ? void 0 : _p.id.toString(),
+          currentHandler: this.bot.botInfo?.id.toString(),
           lastMessageSent: Date.now(),
           messages: []
         };
@@ -781,7 +1077,7 @@ ${description}]` };
       const userId = stringToUuid(ctx.from.id.toString());
       const userName = ctx.from.username || ctx.from.first_name || "Unknown User";
       const chatId2 = stringToUuid(
-        ((_q = ctx.chat) == null ? void 0 : _q.id.toString()) + "-" + this.runtime.agentId
+        ctx.chat?.id.toString() + "-" + this.runtime.agentId
       );
       const agentId = this.runtime.agentId;
       const roomId = chatId2;
@@ -793,7 +1089,7 @@ ${description}]` };
         "telegram"
       );
       const messageId = stringToUuid(
-        message2.message_id.toString() + "-" + this.runtime.agentId
+        roomId + "-" + message2.message_id.toString()
       );
       const imageInfo = await this.processImage(message2);
       let messageText2 = "";
@@ -839,7 +1135,7 @@ ${description}]` };
             const isLastMessage = i === sentMessages.length - 1;
             const memory2 = {
               id: stringToUuid(
-                sentMessage.message_id.toString() + "-" + this.runtime.agentId
+                roomId + "-" + sentMessage.message_id.toString()
               ),
               agentId,
               userId: agentId,
@@ -862,7 +1158,7 @@ ${description}]` };
       if (shouldRespond) {
         const context = composeContext({
           state,
-          template: ((_r = this.runtime.character.templates) == null ? void 0 : _r.telegramMessageHandlerTemplate) || ((_t = (_s = this.runtime.character) == null ? void 0 : _s.templates) == null ? void 0 : _t.messageHandlerTemplate) || telegramMessageHandlerTemplate
+          template: this.runtime.character.templates?.telegramMessageHandlerTemplate || this.runtime.character?.templates?.messageHandlerTemplate || telegramMessageHandlerTemplate
         });
         const responseContent = await this._generateResponse(
           memory,
@@ -935,7 +1231,7 @@ var TelegramClient = class {
     elizaLogger2.log("\u{1F4F1} Constructing new TelegramClient...");
     this.options = {
       telegram: {
-        apiRoot: runtime.getSetting("TELEGRAM_API_ROOT") || "https://api.telegram.org"
+        apiRoot: runtime.getSetting("TELEGRAM_API_ROOT") || process.env.TELEGRAM_API_ROOT || "https://api.telegram.org"
       }
     };
     this.runtime = runtime;
@@ -968,12 +1264,11 @@ var TelegramClient = class {
     this.messageManager.bot = this.bot;
   }
   async isGroupAuthorized(ctx) {
-    var _a, _b, _c;
-    const config = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram;
-    if (((_b = ctx.from) == null ? void 0 : _b.id) === ((_c = ctx.botInfo) == null ? void 0 : _c.id)) {
+    const config = this.runtime.character.clientConfig?.telegram;
+    if (ctx.from?.id === ctx.botInfo?.id) {
       return false;
     }
-    if (!(config == null ? void 0 : config.shouldOnlyJoinInAllowedGroups)) {
+    if (!config?.shouldOnlyJoinInAllowedGroups) {
       return true;
     }
     const allowedGroups = config.allowedGroupIds || [];
@@ -1009,14 +1304,13 @@ var TelegramClient = class {
       }
     });
     this.bot.on("message", async (ctx) => {
-      var _a, _b, _c, _d;
       try {
         if (!await this.isGroupAuthorized(ctx)) {
           return;
         }
         if (this.tgTrader) {
-          const userId = (_a = ctx.from) == null ? void 0 : _a.id.toString();
-          const username = ((_b = ctx.from) == null ? void 0 : _b.username) || ((_c = ctx.from) == null ? void 0 : _c.first_name) || "Unknown";
+          const userId = ctx.from?.id.toString();
+          const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
           if (!userId) {
             elizaLogger2.warn(
               "Received message from a user without an ID."
@@ -1040,7 +1334,7 @@ var TelegramClient = class {
         await this.messageManager.handleMessage(ctx);
       } catch (error) {
         elizaLogger2.error("\u274C Error handling message:", error);
-        if (((_d = error == null ? void 0 : error.response) == null ? void 0 : _d.error_code) !== 403) {
+        if (error?.response?.error_code !== 403) {
           try {
             await ctx.reply(
               "An error occurred while processing your message."
@@ -1124,21 +1418,20 @@ ${errorMessages}`
 // src/index.ts
 var TelegramClientInterface = {
   name: "telegram",
-  config: {},
   start: async (runtime) => {
-    const telegramConfig = await validateTelegramConfig(runtime);
+    await validateTelegramConfig(runtime);
     const tg = new TelegramClient(
       runtime,
-      telegramConfig.TELEGRAM_BOT_TOKEN
+      runtime.getSetting("TELEGRAM_BOT_TOKEN")
     );
     await tg.start();
-    console.log(
+    elizaLogger3.success(
       `\u2705 Telegram client successfully started for character ${runtime.character.name}`
     );
     return tg;
   },
   stop: async (_runtime) => {
-    console.warn("Telegram client does not support stopping yet");
+    elizaLogger3.warn("Telegram client does not support stopping yet");
   }
 };
 var index_default = TelegramClientInterface;
