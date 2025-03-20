@@ -31,7 +31,7 @@ describe('TelegramClient', () => {
       getSetting: vi.fn((key: string) => {
         switch (key) {
           case 'BACKEND_URL':
-            return 'http://localhost:3000';
+            return 'http://192.168.1.90:3000';
           case 'BACKEND_TOKEN':
             return 'test_backend_token';
           case 'TG_TRADER':
