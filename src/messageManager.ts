@@ -606,7 +606,7 @@ export class MessageManager {
           const randomDelay =
             Math.floor(
               Math.random() *
-                (TIMING_CONSTANTS.TEAM_MEMBER_DELAY_MAX - TIMING_CONSTANTS.TEAM_MEMBER_DELAY_MIN)
+              (TIMING_CONSTANTS.TEAM_MEMBER_DELAY_MAX - TIMING_CONSTANTS.TEAM_MEMBER_DELAY_MIN)
             ) + TIMING_CONSTANTS.TEAM_MEMBER_DELAY_MIN; // 1-3 second random delay
           await new Promise((resolve) => setTimeout(resolve, randomDelay));
           return true;
@@ -759,18 +759,33 @@ export class MessageManager {
         await this.sendMedia(ctx, attachment.url, mediaType, attachment.description);
       });
     } else {
-      const chunks = this.splitMessage(content.text);
-      const sentMessages: Message.TextMessage[] = [];
+      if (content) {
+        if (content.text) {
 
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = escapeMarkdown(chunks[i]);
-        const sentMessage = (await ctx.telegram.sendMessage(ctx.chat.id, chunk, {
-          reply_parameters:
-            i === 0 && replyToMessageId ? { message_id: replyToMessageId } : undefined,
-          parse_mode: 'Markdown',
-        })) as Message.TextMessage;
+          const chunks = this.splitMessage(content.text);
+          const sentMessages: Message.TextMessage[] = [];
 
-        sentMessages.push(sentMessage);
+          for (let i = 0; i < chunks.length; i++) {
+            const chunk = escapeMarkdown(chunks[i]);
+            const sentMessage = (await ctx.telegram.sendMessage(ctx.chat.id, chunk, {
+              reply_parameters:
+                i === 0 && replyToMessageId ? { message_id: replyToMessageId } : undefined,
+              parse_mode: 'Markdown',
+            })) as Message.TextMessage;
+
+            sentMessages.push(sentMessage);
+          }
+        }
+        else {
+          console.log("no content text")
+
+        }
+
+
+      }
+      else {
+        console.log("no content")
+
       }
 
       return sentMessages;
@@ -1069,8 +1084,8 @@ export class MessageManager {
         inReplyTo:
           'reply_to_message' in message && message.reply_to_message
             ? stringToUuid(
-                message.reply_to_message.message_id.toString() + '-' + this.runtime.agentId
-              )
+              message.reply_to_message.message_id.toString() + '-' + this.runtime.agentId
+            )
             : undefined,
       };
 
